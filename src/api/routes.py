@@ -7,7 +7,6 @@ from core.db import db_session_manager
 from core.models import Product
 
 router = APIRouter(
-    prefix="/api/v1/products",
     tags=["products"],
 )
 

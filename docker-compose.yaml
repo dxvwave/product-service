@@ -1,0 +1,32 @@
+# Docker Compose configuration for Product Service with PostgreSQL
+services:
+  product-service:
+    build: .
+    command: uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./:/app
+      - /app/.venv
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${PRODUCT_SERVICE_DATABASE_URL}
+    depends_on:
+      - product-db
+
+  product-db:
+    image: postgres:latest
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${PRODUCT_SERVICE_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${PRODUCT_SERVICE_POSTGRES_PASSWORD}
+      - POSTGRES_DB=${PRODUCT_SERVICE_POSTGRES_DB}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - product-db-data:/var/lib/postgresql
+
+volumes:
+  product-db-data:
+    driver: local

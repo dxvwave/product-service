@@ -3,7 +3,9 @@ import uvicorn
 
 from api.routes import router as v1_products_router
 
-app = FastAPI()
+app = FastAPI(
+    root_path="/api/v1/products",
+)
 app.include_router(v1_products_router)
 
 

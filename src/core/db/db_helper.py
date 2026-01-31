@@ -6,6 +6,8 @@ from sqlalchemy.ext.asyncio import (
     AsyncSession,
 )
 
+from core.config import settings
+
 
 class AsyncSessionManager:
     def __init__(self, database_url: str):
@@ -35,4 +37,4 @@ class AsyncSessionManager:
         await self.engine.dispose()
 
 
-db_session_manager = AsyncSessionManager(database_url="sqlite+aiosqlite:///test.db")
+db_session_manager = AsyncSessionManager(database_url=settings.database_url)
