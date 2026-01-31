@@ -6,7 +6,7 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from core.models import Base
+from src.core.models import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -26,7 +26,7 @@ target_metadata = Base.metadata
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
-config.set_main_option("sqlalchemy.url", "sqlite+aiosqlite:///./test.db")
+config.set_main_option("sqlalchemy.url", "sqlite+aiosqlite:///src/test.db")
 
 
 def run_migrations_offline() -> None:
