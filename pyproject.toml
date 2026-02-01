@@ -11,6 +11,8 @@ dependencies = [
     "pydantic-settings>=2.12.0",
     "aiosqlite>=0.22.1",
     "asyncpg>=0.31.0",
+    "protobuf>=6.33.5",
+    "grpcio>=1.76.0",
 ]
 
 [dependency-groups]
