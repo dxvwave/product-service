@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .schemas import ProductRead, ProductCreate, ProductUpdate
 from core.db import db_session_manager
 from core.models import Product
-from grpc_apps.auth_client import AuthClient
+from infrastructure.clients.auth_client import AuthClient
 
 router = APIRouter(
     tags=["products"],
@@ -86,7 +86,7 @@ async def delete_product(
 
 @router.get("/secure-data/")
 async def get_secure_data(token: str):
-    is_valid = auth_client.validate_token(token)
+    is_valid = await auth_client.validate_token(token)
 
     if not is_valid:
         raise HTTPException(
