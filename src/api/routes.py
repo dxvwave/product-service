@@ -1,16 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 
 from .schemas import ProductRead, ProductCreate, ProductUpdate
 from core.db import db_session_manager
 from core.models import Product
+from core.dependencies import get_auth_client
 from infrastructure.clients.auth_client import AuthClient
 
 router = APIRouter(
     tags=["products"],
 )
-auth_client = AuthClient(host='localhost', port=50051)
 
 
 @router.get("/", response_model=list[ProductRead])
@@ -85,7 +86,10 @@ async def delete_product(
 
 
 @router.get("/secure-data/")
-async def get_secure_data(token: str):
+async def get_secure_data(
+    token: str,
+    auth_client: AuthClient = Depends(get_auth_client),
+):
     is_valid = await auth_client.validate_token(token)
 
     if not is_valid:
@@ -94,4 +98,6 @@ async def get_secure_data(token: str):
             detail={"message": "Invalid authentication token"},
         )
 
-    return {"secure_data": "This is some secure data accessible only with a valid token."}
+    return {
+        "secure_data": "This is some secure data accessible only with a valid token."
+    }
