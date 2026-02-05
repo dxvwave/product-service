@@ -2,12 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
 from .schemas import ProductRead, ProductCreate, ProductUpdate
-from core.db import db_session_manager
-from core.models import Product
+from db import db_session_manager
+from db.models import Product
 from core.dependencies import get_auth_client
-from infrastructure.clients.auth_client import AuthClient
+from interfaces.grpc.auth_client import AuthClient
 
 router = APIRouter(
     tags=["products"],

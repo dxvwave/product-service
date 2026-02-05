@@ -2,8 +2,8 @@ from fastapi import FastAPI
 from fastapi.concurrency import asynccontextmanager
 import uvicorn
 
-from api.routes import router as v1_products_router
-from infrastructure.clients.auth_client import auth_client_instance
+from interfaces.api.routes import router as v1_products_router
+from interfaces.grpc.auth_client import auth_client_instance
 
 
 @asynccontextmanager

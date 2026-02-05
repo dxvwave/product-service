@@ -1,5 +1,5 @@
 import grpc
-from infrastructure.clients.gen import auth_pb2, auth_pb2_grpc
+from interfaces.grpc.gen import auth_pb2, auth_pb2_grpc
 
 
 class AuthClient:
