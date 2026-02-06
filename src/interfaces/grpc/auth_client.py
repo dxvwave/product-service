@@ -18,11 +18,11 @@ class AuthClient:
         if self.channel:
             await self.channel.close()
 
-    async def validate_token(self, token: str) -> bool:
+    async def validate_token(self, token: str) -> dict:
         try:
             request = auth_pb2.ValidateRequest(token=token)
             response = await self.stub.ValidateToken(request)
-            return response.is_valid
+            return response
         except grpc.RpcError as e:
             print(f"gRPC error: {e.code()} - {e.details()}")
             return False

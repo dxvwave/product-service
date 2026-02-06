@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from google.protobuf.json_format import MessageToDict
 
 from .schemas import ProductRead, ProductCreate, ProductUpdate
 from db import db_session_manager
@@ -44,7 +45,7 @@ async def get_product(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"message": f"Product: {product_id} not found"},
         )
-    return ProductRead(product.__dict__)
+    return ProductRead(**product.__dict__)
 
 
 @router.put("/{product_id}", response_model=ProductRead)
@@ -84,19 +85,23 @@ async def delete_product(
     await session.commit()
 
 
-@router.get("/secure-data/")
-async def get_secure_data(
+@router.get("/user-data/")
+async def get_user_data(
     token: str,
     auth_client: AuthClient = Depends(get_auth_client),
 ):
-    is_valid = await auth_client.validate_token(token)
+    response = await auth_client.validate_token(token)
 
-    if not is_valid:
+    if not response.is_valid:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"message": "Invalid authentication token"},
         )
 
-    return {
-        "secure_data": "This is some secure data accessible only with a valid token."
-    }
+    user_data = MessageToDict(
+        response.user,
+        always_print_fields_with_no_presence=True,
+        preserving_proto_field_name=True,
+    )
+
+    return user_data
