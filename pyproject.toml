@@ -13,9 +13,13 @@ dependencies = [
     "asyncpg>=0.31.0",
     "protobuf>=6.33.5",
     "grpcio>=1.76.0",
+    "contracts",
 ]
 
 [dependency-groups]
 dev = [
     "black>=26.1.0",
 ]
+
+[tool.uv.sources]
+contracts = { git = "https://github.com/dxvwave/contracts.git" }
