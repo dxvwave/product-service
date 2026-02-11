@@ -42,4 +42,4 @@ class AuthClient:
             return auth_pb2.ValidateResponse(is_valid=False)
 
 
-auth_client_instance = AuthClient(host="localhost", port=50051)
+auth_client_instance = AuthClient(host="auth-service", port=50051)
