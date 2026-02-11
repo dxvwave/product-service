@@ -13,6 +13,7 @@ class Product(Base):
     description: Mapped[str] = mapped_column(nullable=False)
     price: Mapped[float] = mapped_column(DECIMAL(10, 2), nullable=False)
     quantity: Mapped[int] = mapped_column(nullable=False, default=0)
+    user_id: Mapped[int] = mapped_column(nullable=False, index=True)
 
     created_at: Mapped[datetime] = mapped_column(
         server_default=func.now(),

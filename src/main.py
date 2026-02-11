@@ -1,10 +1,12 @@
 import logging
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 from fastapi.concurrency import asynccontextmanager
+from fastapi.responses import JSONResponse
 
 from core.logging_config import setup_logging
+from core.exceptions import EXCEPTION_MAPPING, ApplicationException
 from interfaces.api.routes import router as products_router
 from interfaces.grpc.auth_client import auth_client_instance
 
@@ -37,6 +39,21 @@ app = FastAPI(
     root_path="/api/v1/products",
     lifespan=lifespan,
 )
+
+
+# Global exception handler for application exceptions
+@app.exception_handler(ApplicationException)
+async def application_exception_handler(request, exc: ApplicationException):
+    status_code = EXCEPTION_MAPPING.get(
+        type(exc),
+        status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )
+
+    return JSONResponse(
+        status_code=status_code,
+        content={"message": exc.message},
+    )
+
 
 # Include routers with tags
 app.include_router(products_router)

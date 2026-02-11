@@ -1,16 +1,15 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPBearer
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from google.protobuf.json_format import MessageToDict
 
 from .schemas import ProductRead, ProductCreate, ProductUpdate
 from db import db_session_manager
-from core.dependencies import get_product_service, get_auth_client
-from core.exceptions import ProductNotFoundError
+from core.dependencies import (
+    get_current_active_user,
+    get_product_service,
+)
 from services.product_service import ProductService
-from interfaces.grpc.auth_client import AuthClient
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +32,13 @@ async def create_product(
     product: ProductCreate,
     session: AsyncSession = Depends(db_session_manager.get_async_session),
     product_service: ProductService = Depends(get_product_service),
+    current_user: dict = Depends(get_current_active_user),
 ):
-    new_product = await product_service.create_product(session, product)
+    new_product = await product_service.create_product(
+        session,
+        product,
+        current_user.get("id"),
+    )
     return new_product
 
 
@@ -44,15 +48,8 @@ async def get_product(
     session: AsyncSession = Depends(db_session_manager.get_async_session),
     product_service: ProductService = Depends(get_product_service),
 ):
-    try:
-        product = await product_service.get_product_by_id(session, product_id)
-        return product
-    except ProductNotFoundError as e:
-        logger.warning(f"Product not found: {product_id}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
-        )
+    product = await product_service.get_product_by_id(session, product_id)
+    return product
 
 
 @router.put("/{product_id}", response_model=ProductRead)
@@ -61,16 +58,15 @@ async def update_product(
     product_update: ProductUpdate,
     session: AsyncSession = Depends(db_session_manager.get_async_session),
     product_service: ProductService = Depends(get_product_service),
+    current_user: dict = Depends(get_current_active_user),
 ):
-    try:
-        product = await product_service.update_product(session, product_id, product_update)
-        return product
-    except ProductNotFoundError as e:
-        logger.warning(f"Product not found for update: {product_id}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
-        )
+    product = await product_service.update_product(
+        session,
+        product_id,
+        product_update,
+        current_user.get("id"),
+    )
+    return product
 
 
 @router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -78,35 +74,10 @@ async def delete_product(
     product_id: int,
     session: AsyncSession = Depends(db_session_manager.get_async_session),
     product_service: ProductService = Depends(get_product_service),
+    current_user: dict = Depends(get_current_active_user),
 ):
-    try:
-        await product_service.delete_product(session, product_id)
-    except ProductNotFoundError as e:
-        logger.warning(f"Product not found for deletion: {product_id}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
-        )
-
-
-@router.get("/user-data/")
-async def get_user_data(
-    token: str = Depends(HTTPBearer()),
-    auth_client: AuthClient = Depends(get_auth_client),
-):
-    response = await auth_client.validate_token(token.credentials)
-
-    if not response.is_valid:
-        logger.warning("Invalid authentication token provided")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication token",
-        )
-
-    user_data = MessageToDict(
-        response.user,
-        always_print_fields_with_no_presence=True,
-        preserving_proto_field_name=True,
+    await product_service.delete_product(
+        session,
+        product_id,
+        current_user.get("id"),
     )
-
-    return user_data

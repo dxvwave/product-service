@@ -31,9 +31,11 @@ class ProductService:
             ProductNotFoundError: If product is not found
         """
         product = await session.get(Product, product_id)
+
         if not product:
             logger.debug(f"Product not found with id: {product_id}")
             raise ProductNotFoundError(f"Product with id {product_id} not found")
+
         return product
 
     async def get_all_products(
@@ -56,6 +58,7 @@ class ProductService:
         self,
         session: AsyncSession,
         product_data: ProductCreate,
+        user_id: int,
     ) -> Product:
         """
         Create a new product.
@@ -63,12 +66,13 @@ class ProductService:
         Args:
             session: Database session
             product_data: Product creation data
+            user_id: int: ID of the user creating the product
 
         Returns:
             Created product object
         """
-        new_product = Product(**product_data.model_dump())
-        
+        new_product = Product(**product_data.model_dump(), user_id=user_id)
+
         session.add(new_product)
         await session.commit()
         await session.refresh(new_product)
@@ -81,6 +85,7 @@ class ProductService:
         session: AsyncSession,
         product_id: int,
         product_data: ProductUpdate,
+        user_id: int,
     ) -> Product:
         """
         Update an existing product.
@@ -89,6 +94,7 @@ class ProductService:
             session: Database session
             product_id: Product ID
             product_data: Product update data
+            user_id: int: ID of the user attempting to update the product
 
         Returns:
             Updated product object
@@ -97,6 +103,12 @@ class ProductService:
             ProductNotFoundError: If product is not found
         """
         product = await self.get_product_by_id(session, product_id)
+
+        if product.user_id != user_id:
+            logger.debug(
+                f"User {user_id} is not authorized to update product {product_id}"
+            )
+            raise ProductNotFoundError(f"Product with id {product_id} not found")
 
         for key, value in product_data.model_dump(exclude_unset=True).items():
             setattr(product, key, value)
@@ -112,6 +124,7 @@ class ProductService:
         self,
         session: AsyncSession,
         product_id: int,
+        user_id: int,
     ) -> None:
         """
         Delete a product.
@@ -119,12 +132,19 @@ class ProductService:
         Args:
             session: Database session
             product_id: Product ID
+            user_id: int: ID of the user attempting to delete the product
 
         Raises:
             ProductNotFoundError: If product is not found
         """
         product = await self.get_product_by_id(session, product_id)
-        
+
+        if product.user_id != user_id:
+            logger.debug(
+                f"User {user_id} is not authorized to delete product {product_id}"
+            )
+            raise ProductNotFoundError(f"Product with id {product_id} not found")
+
         await session.delete(product)
         await session.commit()
 

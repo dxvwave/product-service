@@ -66,5 +66,6 @@ class ProductRead(ProductBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int = Field(..., example=1)
+    user_id: int = Field(..., example=1)
     created_at: datetime
     updated_at: datetime

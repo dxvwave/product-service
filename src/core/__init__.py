@@ -5,6 +5,11 @@ from .exceptions import (
     ProductNotFoundError,
     ProductAlreadyExistsError,
     InvalidProductDataError,
+    AuthenticationError,
+    UnauthorizedError,
+    InactiveUserError,
+    ApplicationException,
+    EXCEPTION_MAPPING,
 )
 
 __all__ = [
@@ -15,4 +20,9 @@ __all__ = [
     "ProductNotFoundError",
     "ProductAlreadyExistsError",
     "InvalidProductDataError",
+    "AuthenticationError",
+    "UnauthorizedError",
+    "InactiveUserError",
+    "ApplicationException",
+    "EXCEPTION_MAPPING",
 ]
