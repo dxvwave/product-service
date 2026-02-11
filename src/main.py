@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Product Service",
     description="Product Management Service for Microservices",
-    version="0.1.0",
+    version="0.1.1",
     root_path="/api/v1/products",
     lifespan=lifespan,
 )
