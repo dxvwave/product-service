@@ -1,0 +1,134 @@
+import logging
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from db.models import Product
+from interfaces.api.schemas import ProductCreate, ProductUpdate
+from core.exceptions import ProductNotFoundError
+
+logger = logging.getLogger(__name__)
+
+
+class ProductService:
+    """Service for product management operations."""
+
+    async def get_product_by_id(
+        self,
+        session: AsyncSession,
+        product_id: int,
+    ) -> Product:
+        """
+        Get a product by its ID.
+
+        Args:
+            session: Database session
+            product_id: Product ID
+
+        Returns:
+            Product object
+
+        Raises:
+            ProductNotFoundError: If product is not found
+        """
+        product = await session.get(Product, product_id)
+        if not product:
+            logger.debug(f"Product not found with id: {product_id}")
+            raise ProductNotFoundError(f"Product with id {product_id} not found")
+        return product
+
+    async def get_all_products(
+        self,
+        session: AsyncSession,
+    ) -> list[Product]:
+        """
+        Get all products.
+
+        Args:
+            session: Database session
+
+        Returns:
+            List of all products
+        """
+        result = await session.scalars(select(Product))
+        return list(result.all())
+
+    async def create_product(
+        self,
+        session: AsyncSession,
+        product_data: ProductCreate,
+    ) -> Product:
+        """
+        Create a new product.
+
+        Args:
+            session: Database session
+            product_data: Product creation data
+
+        Returns:
+            Created product object
+        """
+        new_product = Product(**product_data.model_dump())
+        
+        session.add(new_product)
+        await session.commit()
+        await session.refresh(new_product)
+
+        logger.info(f"Created new product: {new_product.name} (ID: {new_product.id})")
+        return new_product
+
+    async def update_product(
+        self,
+        session: AsyncSession,
+        product_id: int,
+        product_data: ProductUpdate,
+    ) -> Product:
+        """
+        Update an existing product.
+
+        Args:
+            session: Database session
+            product_id: Product ID
+            product_data: Product update data
+
+        Returns:
+            Updated product object
+
+        Raises:
+            ProductNotFoundError: If product is not found
+        """
+        product = await self.get_product_by_id(session, product_id)
+
+        for key, value in product_data.model_dump(exclude_unset=True).items():
+            setattr(product, key, value)
+
+        session.add(product)
+        await session.commit()
+        await session.refresh(product)
+
+        logger.info(f"Updated product: {product.name} (ID: {product.id})")
+        return product
+
+    async def delete_product(
+        self,
+        session: AsyncSession,
+        product_id: int,
+    ) -> None:
+        """
+        Delete a product.
+
+        Args:
+            session: Database session
+            product_id: Product ID
+
+        Raises:
+            ProductNotFoundError: If product is not found
+        """
+        product = await self.get_product_by_id(session, product_id)
+        
+        await session.delete(product)
+        await session.commit()
+
+        logger.info(f"Deleted product: {product.name} (ID: {product.id})")
+
+
+product_service = ProductService()

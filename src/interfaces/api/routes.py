@@ -1,51 +1,58 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from google.protobuf.json_format import MessageToDict
 
 from .schemas import ProductRead, ProductCreate, ProductUpdate
 from db import db_session_manager
-from db.models import Product
-from core.dependencies import get_auth_client
+from core.dependencies import get_product_service, get_auth_client
+from core.exceptions import ProductNotFoundError
+from services.product_service import ProductService
 from interfaces.grpc.auth_client import AuthClient
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(
-    tags=["products"],
+    tags=["Products"],
 )
 
 
 @router.get("/", response_model=list[ProductRead])
 async def get_products(
     session: AsyncSession = Depends(db_session_manager.get_async_session),
+    product_service: ProductService = Depends(get_product_service),
 ):
-    products = await session.scalars(select(Product))
-    return products.all()
+    products = await product_service.get_all_products(session)
+    return products
 
 
-@router.post("/", response_model=ProductRead)
+@router.post("/", response_model=ProductRead, status_code=status.HTTP_201_CREATED)
 async def create_product(
     product: ProductCreate,
     session: AsyncSession = Depends(db_session_manager.get_async_session),
+    product_service: ProductService = Depends(get_product_service),
 ):
-    new_product = Product(**product.model_dump())
-    session.add(new_product)
-    await session.commit()
-    await session.refresh(new_product)
-    return ProductRead(**new_product.__dict__)
+    new_product = await product_service.create_product(session, product)
+    return new_product
 
 
 @router.get("/{product_id}", response_model=ProductRead)
 async def get_product(
     product_id: int,
     session: AsyncSession = Depends(db_session_manager.get_async_session),
+    product_service: ProductService = Depends(get_product_service),
 ):
-    product = await session.scalar(select(Product).where(Product.id == product_id))
-    if not product:
-        return HTTPException(
+    try:
+        product = await product_service.get_product_by_id(session, product_id)
+        return product
+    except ProductNotFoundError as e:
+        logger.warning(f"Product not found: {product_id}")
+        raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail={"message": f"Product: {product_id} not found"},
+            detail=str(e),
         )
-    return ProductRead(**product.__dict__)
 
 
 @router.put("/{product_id}", response_model=ProductRead)
@@ -53,49 +60,47 @@ async def update_product(
     product_id: int,
     product_update: ProductUpdate,
     session: AsyncSession = Depends(db_session_manager.get_async_session),
+    product_service: ProductService = Depends(get_product_service),
 ):
-    product = await session.scalar(select(Product).where(Product.id == product_id))
-    if not product:
-        return HTTPException(
+    try:
+        product = await product_service.update_product(session, product_id, product_update)
+        return product
+    except ProductNotFoundError as e:
+        logger.warning(f"Product not found for update: {product_id}")
+        raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail={"message": f"Product: {product_id} not found"},
+            detail=str(e),
         )
 
-    for key, value in product_update.model_dump(exclude_unset=True).items():
-        setattr(product, key, value)
 
-    session.add(product)
-    await session.commit()
-    await session.refresh(product)
-    return ProductRead(**product.__dict__)
-
-
-@router.delete("/{product_id}")
+@router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_product(
     product_id: int,
     session: AsyncSession = Depends(db_session_manager.get_async_session),
+    product_service: ProductService = Depends(get_product_service),
 ):
-    product = await session.scalar(select(Product).where(Product.id == product_id))
-    if not product:
-        return HTTPException(
+    try:
+        await product_service.delete_product(session, product_id)
+    except ProductNotFoundError as e:
+        logger.warning(f"Product not found for deletion: {product_id}")
+        raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail={"message": f"Product: {product_id} not found"},
+            detail=str(e),
         )
-    await session.delete(product)
-    await session.commit()
 
 
 @router.get("/user-data/")
 async def get_user_data(
-    token: str,
+    token: str = Depends(HTTPBearer()),
     auth_client: AuthClient = Depends(get_auth_client),
 ):
-    response = await auth_client.validate_token(token)
+    response = await auth_client.validate_token(token.credentials)
 
     if not response.is_valid:
+        logger.warning("Invalid authentication token provided")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"message": "Invalid authentication token"},
+            detail="Invalid authentication token",
         )
 
     user_data = MessageToDict(
