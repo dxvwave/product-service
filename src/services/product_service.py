@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db.models import Product
 from interfaces.api.schemas import ProductCreate, ProductUpdate
 from core.exceptions import ProductNotFoundError
+from services.rabbitmq_client import rabbit_client
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +79,19 @@ class ProductService:
         await session.refresh(new_product)
 
         logger.info(f"Created new product: {new_product.name} (ID: {new_product.id})")
+
+        await rabbit_client.publish_product_created(
+            {
+                "id": new_product.id,
+                "name": new_product.name,
+                "description": new_product.description,
+                "price": str(new_product.price),
+                "user_id": new_product.user_id,
+            }
+        )
+
+        logger.info(f"Published product.created event for product ID: {new_product.id}")
+
         return new_product
 
     async def update_product(

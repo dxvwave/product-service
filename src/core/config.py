@@ -33,6 +33,12 @@ class Settings(BaseSettings):
         description="Port for the auth gRPC client",
     )
 
+    # RabbitMQ
+    rabbitmq_url: str = Field(
+        default="amqp://guest:guest@rabbitmq/",
+        description="RabbitMQ connection URL",
+    )
+
     # Logging
     log_level: str = Field(
         default="INFO",

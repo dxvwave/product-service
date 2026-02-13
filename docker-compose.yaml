@@ -11,8 +11,13 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql+asyncpg://root:toor@product-db:5432/products
+      - AUTH_GRPC_CLIENT_HOST=localhost
+      - AUTH_GRPC_CLIENT_PORT=50051
+      - RABBITMQ_URL=amqp://guest:guest@localhost:5672/
     depends_on:
       - product-db
+    networks:
+      - product-service-network
 
   product-db:
     image: postgres:latest
@@ -25,7 +30,13 @@ services:
       - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
       - product-db-data:/var/lib/postgresql
+    networks:
+      - product-service-network
 
 volumes:
   product-db-data:
     driver: local
+
+networks:
+  product-service-network:
+    driver: bridge

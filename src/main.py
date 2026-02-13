@@ -7,8 +7,10 @@ from fastapi.responses import JSONResponse
 
 from core.logging_config import setup_logging
 from core.exceptions import EXCEPTION_MAPPING, ApplicationException
+from core.utils import connect_to_rabbitmq
 from interfaces.api.routes import router as products_router
 from interfaces.grpc.auth_client import auth_client_instance
+from services.rabbitmq_client import rabbit_client
 
 # Setup logging
 setup_logging()
@@ -24,12 +26,24 @@ async def lifespan(app: FastAPI):
     app.state.auth_client = auth_client_instance
     logger.info("Auth client connected")
 
+    # Connect to RabbitMQ
+    logger.info("Connecting to RabbitMQ...")
+    try:
+        await connect_to_rabbitmq()
+    except Exception as e:
+        logger.error(f"Failed to connect to RabbitMQ: {e}")
+        raise
+    app.state.rabbit_client = rabbit_client
+    logger.info("RabbitMQ client connected")
+
     yield
 
     # Shutdown
     logger.info("Shutting down product service...")
     await auth_client_instance.close()
     logger.info("Auth client closed")
+    await rabbit_client.close()
+    logger.info("RabbitMQ client closed")
 
 
 app = FastAPI(
