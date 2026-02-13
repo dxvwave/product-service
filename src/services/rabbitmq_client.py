@@ -15,7 +15,7 @@ class RabbitClient:
         self.channel = await self.connection.channel()
         self.exchange = await self.channel.declare_exchange(
             "product_events",
-            aio_pika.ExchangeType.DIRECT,
+            aio_pika.ExchangeType.TOPIC,
             durable=True,
         )
 
@@ -33,12 +33,16 @@ class RabbitClient:
             aio_pika.Message(
                 body=json.dumps(message).encode(),
                 delivery_mode=delivery_mode,
+                content_type="application/json"
             ),
             routing_key=routing_key,
         )
 
     async def publish_product_created(self, product: dict):
         await self._publish_event("product.created", product)
+
+    async def publish_product_price_changed(self, product: dict):
+        await self._publish_event("product.price_changed", product)
 
 
 rabbit_client = RabbitClient(settings.rabbitmq_url)

@@ -117,14 +117,17 @@ class ProductService:
             ProductNotFoundError: If product is not found
         """
         product = await self.get_product_by_id(session, product_id)
+        previous_price = product.price
 
         if product.user_id != user_id:
             logger.debug(
                 f"User {user_id} is not authorized to update product {product_id}"
             )
             raise ProductNotFoundError(f"Product with id {product_id} not found")
+        
+        update_data = product_data.model_dump(exclude_unset=True)
 
-        for key, value in product_data.model_dump(exclude_unset=True).items():
+        for key, value in update_data.items():
             setattr(product, key, value)
 
         session.add(product)
@@ -132,6 +135,17 @@ class ProductService:
         await session.refresh(product)
 
         logger.info(f"Updated product: {product.name} (ID: {product.id})")
+
+        if "price" in update_data and update_data["price"] != previous_price:
+            await rabbit_client.publish_product_price_changed(
+                {
+                    "id": product.id,
+                    "user_id": product.user_id,
+                    "previous_price": str(previous_price),
+                    "new_price": str(product.price),
+                }
+            )
+
         return product
 
     async def delete_product(
