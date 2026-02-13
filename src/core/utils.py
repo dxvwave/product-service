@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 @retry(
-    stop=stop_after_attempt(15),
-    wait=wait_exponential(multiplier=1, min=2, max=30),
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
     retry=retry_if_exception_type((ConnectionError, aio_pika.exceptions.AMQPConnectionError)),
     before_sleep=before_sleep_log(logger, logging.WARNING)
 )
