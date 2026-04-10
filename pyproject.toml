@@ -26,4 +26,4 @@ dev = [
 
 [tool.uv.sources]
 contracts = { git = "https://github.com/dxvwave/contracts.git", rev = "0.1.1" }
-shared = { git = "https://github.com/dxvwave/shared.git", rev = "0.1.0"}
+shared = { git = "https://github.com/dxvwave/shared.git", rev = "0.1.0" }
